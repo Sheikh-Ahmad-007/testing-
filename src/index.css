@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  
+  --color-brand-netflix: #f82020;
+  --color-brand-crunchy: #ff6400;
+  --color-bg-dark: #050505;
+  --color-bg-sidebar: #0a0a0a;
+  --color-bg-card: #0d0d0d;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f82020;
+}
+
+body {
+  background-color: var(--color-bg-dark);
+  color: #e5e5e5;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Sophisticated Dark glowing components */
+.glow-button {
+  box-shadow: 0 4px 20px rgba(248, 32, 32, 0.15);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glow-button:hover {
+  box-shadow: 0 4px 30px rgba(248, 32, 32, 0.4);
+}
+
+.glow-glow-banner {
+  box-shadow: inset 0 0 100px rgba(248, 32, 32, 0.05);
+}
+
+.glow-border {
+  border-color: #222;
+}
+
+.glow-border:hover {
+  border-color: #f82020;
+}
+
+/* Hide horizontal scrollbar in rows while active */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

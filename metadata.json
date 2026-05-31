@@ -1,0 +1,6 @@
+{
+  "name": "StreamingHub",
+  "description": "A high-fidelity Movie and Anime Streaming platform designed with a premium dark Netflix-style user interface, featuring a unified TMDB API backend, live trailer playback, watch progress tracking, and global watchlist search.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
