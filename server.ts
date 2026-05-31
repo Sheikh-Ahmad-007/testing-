@@ -8,12 +8,38 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
+import { 
+  MOCK_MOVIES, 
+  MOCK_ANIME, 
+  MOCK_TRENDING, 
+  MOCK_TOP_RATED, 
+  getMockDetails, 
+  searchMockItems 
+} from './src/mockData.js';
 
 // Load environmental variables
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Safe resolution of __filename and __dirname regardless of ESM/CJS environments
+const getDirnameAndFilename = () => {
+  let fileLoc = '';
+  let dirLoc = '';
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta && import.meta.url) {
+      fileLoc = fileURLToPath(import.meta.url);
+      dirLoc = path.dirname(fileLoc);
+    }
+  } catch (e) {
+    // Fail silently
+  }
+  if (!fileLoc) {
+    fileLoc = typeof __filename !== 'undefined' ? __filename : '';
+    dirLoc = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+  }
+  return { filename: fileLoc, dirname: dirLoc };
+};
+
+const { filename: __filename, dirname: __dirname } = getDirnameAndFilename();
 
 async function startServer() {
   const app = express();
@@ -39,8 +65,6 @@ async function startServer() {
   app.get('/api/trending', async (req, res) => {
     const apiKey = getApiKey();
     if (!apiKey) {
-      // Fallback
-      const { MOCK_TRENDING } = await import('./src/mockData.js');
       return res.json({ results: MOCK_TRENDING, isMock: true });
     }
 
@@ -50,7 +74,6 @@ async function startServer() {
       const data = await response.json();
       return res.json({ results: data.results, isMock: false });
     } catch (error) {
-      const { MOCK_TRENDING } = await import('./src/mockData.js');
       return res.json({ results: MOCK_TRENDING, isMock: true, error: (error as Error).message });
     }
   });
@@ -59,7 +82,6 @@ async function startServer() {
   app.get('/api/popular-movies', async (req, res) => {
     const apiKey = getApiKey();
     if (!apiKey) {
-      const { MOCK_MOVIES } = await import('./src/mockData.js');
       return res.json({ results: MOCK_MOVIES, isMock: true });
     }
 
@@ -71,7 +93,6 @@ async function startServer() {
       const results = data.results.map((m: any) => ({ ...m, media_type: 'movie' }));
       return res.json({ results, isMock: false });
     } catch (error) {
-      const { MOCK_MOVIES } = await import('./src/mockData.js');
       return res.json({ results: MOCK_MOVIES, isMock: true, error: (error as Error).message });
     }
   });
@@ -80,7 +101,6 @@ async function startServer() {
   app.get('/api/popular-anime', async (req, res) => {
     const apiKey = getApiKey();
     if (!apiKey) {
-      const { MOCK_ANIME } = await import('./src/mockData.js');
       return res.json({ results: MOCK_ANIME, isMock: true });
     }
 
@@ -93,7 +113,6 @@ async function startServer() {
       const results = data.results.map((m: any) => ({ ...m, media_type: 'tv' }));
       return res.json({ results, isMock: false });
     } catch (error) {
-      const { MOCK_ANIME } = await import('./src/mockData.js');
       return res.json({ results: MOCK_ANIME, isMock: true, error: (error as Error).message });
     }
   });
@@ -102,7 +121,6 @@ async function startServer() {
   app.get('/api/top-rated', async (req, res) => {
     const apiKey = getApiKey();
     if (!apiKey) {
-      const { MOCK_TOP_RATED } = await import('./src/mockData.js');
       return res.json({ results: MOCK_TOP_RATED, isMock: true });
     }
 
@@ -113,7 +131,6 @@ async function startServer() {
       const results = data.results.slice(0, 10).map((m: any) => ({ ...m, media_type: 'movie' }));
       return res.json({ results, isMock: false });
     } catch (error) {
-      const { MOCK_TOP_RATED } = await import('./src/mockData.js');
       return res.json({ results: MOCK_TOP_RATED, isMock: true, error: (error as Error).message });
     }
   });
@@ -127,7 +144,6 @@ async function startServer() {
 
     const apiKey = getApiKey();
     if (!apiKey) {
-      const { searchMockItems } = await import('./src/mockData.js');
       return res.json({ results: searchMockItems(query), isMock: true });
     }
 
@@ -139,7 +155,6 @@ async function startServer() {
       const results = data.results.filter((m: any) => m.media_type === 'movie' || m.media_type === 'tv');
       return res.json({ results, isMock: false });
     } catch (error) {
-      const { searchMockItems } = await import('./src/mockData.js');
       return res.json({ results: searchMockItems(query), isMock: true, error: (error as Error).message });
     }
   });
@@ -154,7 +169,6 @@ async function startServer() {
 
     const apiKey = getApiKey();
     if (!apiKey) {
-      const { getMockDetails } = await import('./src/mockData.js');
       const details = getMockDetails(type as 'movie' | 'tv', mediaId);
       if (!details) {
         return res.status(404).json({ error: 'Media fallback not found' });
@@ -178,7 +192,6 @@ async function startServer() {
       };
       return res.json({ results, isMock: false });
     } catch (error) {
-      const { getMockDetails } = await import('./src/mockData.js');
       const details = getMockDetails(type as 'movie' | 'tv', mediaId);
       if (!details) {
         return res.status(404).json({ error: 'Media details fallback fallback not found', details_error: (error as Error).message });

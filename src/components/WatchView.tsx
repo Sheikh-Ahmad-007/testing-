@@ -257,8 +257,11 @@ export default function WatchView({
   const servers = [
     { id: 'vidlink', name: 'Server VidLink', sub: 'Ad-Filtered & Pure Play', badge: 'Fastest' },
     { id: 'vidsrc_to', name: 'Server VidSrc (.to)', sub: 'Global Multi-route', badge: 'HD Pro' },
+    { id: 'vidsrc_me', name: 'Server VidSrc (.me)', sub: 'Ultra Stable Feed', badge: 'Popular' },
+    { id: 'autoembed_co', name: 'Server AutoEmbed', sub: 'No Ads Stream', badge: 'Clean' },
     { id: 'embed_su', name: 'Server Embed.su', sub: 'Secondary Backup Link', badge: 'Backup' },
     { id: 'vidsrc_xyz', name: 'Server VidSrc.xyz', sub: 'Regional Streams Selector', badge: 'Mirror' },
+    { id: 'multiembed', name: 'Server MultiEmbed', sub: 'Fallback Core Hub', badge: 'Alt' },
     { id: 'trailer', name: 'Official Trailer', sub: 'Watch Promos on YT', badge: 'Teaser' }
   ];
 
@@ -274,10 +277,16 @@ export default function WatchView({
           return `https://vidlink.pro/embed/movie/${mediaId}?primaryColor=f82020&autoplay=true`;
         case 'vidsrc_to':
           return `https://vidsrc.to/embed/movie/${mediaId}`;
+        case 'vidsrc_me':
+          return `https://vidsrc.me/embed/movie?tmdb=${mediaId}`;
+        case 'autoembed_co':
+          return `https://autoembed.co/movie/tmdb/${mediaId}`;
         case 'embed_su':
           return `https://embed.su/embed/movie/${mediaId}`;
         case 'vidsrc_xyz':
           return `https://vidsrc.xyz/embed/movie?tmdb=${mediaId}`;
+        case 'multiembed':
+          return `https://multiembed.mov/?video_id=${mediaId}&tmdb=1`;
         default:
           return `https://vidlink.pro/embed/movie/${mediaId}`;
       }
@@ -288,10 +297,16 @@ export default function WatchView({
           return `https://vidlink.pro/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}?primaryColor=f82020&autoplay=true`;
         case 'vidsrc_to':
           return `https://vidsrc.to/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}`;
+        case 'vidsrc_me':
+          return `https://vidsrc.me/embed/tv?tmdb=${mediaId}&season=${activeSeason}&episode=${activeEpisode}`;
+        case 'autoembed_co':
+          return `https://autoembed.co/tv/tmdb/${mediaId}-${activeSeason}-${activeEpisode}`;
         case 'embed_su':
           return `https://embed.su/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}`;
         case 'vidsrc_xyz':
           return `https://vidsrc.xyz/embed/tv?tmdb=${mediaId}&season=${activeSeason}&episode=${activeEpisode}`;
+        case 'multiembed':
+          return `https://multiembed.mov/?video_id=${mediaId}&tmdb=1&s=${activeSeason}&e=${activeEpisode}`;
         default:
           return `https://vidlink.pro/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}`;
       }
