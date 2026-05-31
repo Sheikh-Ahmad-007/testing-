@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Star, Heart, Check, Play, Pause, RotateCcw, 
-  Tv, Film, Calendar, Clock, Smile, Sparkles, Volume2, Shield, Layers, Server, ExternalLink
+  Tv, Film, Calendar, Clock, Smile, Sparkles, Volume2, Shield, Layers, Server, ExternalLink,
+  Languages, Captions, Mic
 } from 'lucide-react';
 import { MediaDetails, RouteState, TMDBMediaItem } from '../types';
 import { isInWatchlist, updateContinueProgress, getContinueWatching } from '../utils/storage';
@@ -64,6 +65,15 @@ export default function WatchView({
       return localStorage.getItem('auto_play_next') !== 'false';
     } catch {
       return true;
+    }
+  });
+
+  // Languages & Subtitle Preference (Subbed / Dubbed)
+  const [subDubMode, setSubDubMode] = useState<'sub' | 'dub'>(() => {
+    try {
+      return (localStorage.getItem('preferred_sub_dub') as 'sub' | 'dub') || 'sub';
+    } catch {
+      return 'sub';
     }
   });
   
@@ -124,7 +134,7 @@ export default function WatchView({
   // Handle active stream resetting indicators on source swap, ep swap, or protection filter toggle
   useEffect(() => {
     setIsReady(false);
-  }, [activeSeason, activeEpisode, activeServer, adShieldActive]);
+  }, [activeSeason, activeEpisode, activeServer, adShieldActive, subDubMode]);
 
   // Periodically increment progress while watching and handle automated episode progression
   useEffect(() => {
@@ -204,6 +214,13 @@ export default function WatchView({
     } catch {}
   };
 
+  const handleSubDubChange = (mode: 'sub' | 'dub') => {
+    setSubDubMode(mode);
+    try {
+      localStorage.setItem('preferred_sub_dub', mode);
+    } catch {}
+  };
+
   if (isLoading) {
     return (
       <div className="pt-24 min-h-screen px-4 md:px-8 max-w-7xl mx-auto flex flex-col gap-6 animate-pulse">
@@ -255,13 +272,15 @@ export default function WatchView({
 
   // Available stream routing engines
   const servers = [
-    { id: 'vidlink', name: 'Server VidLink', sub: 'Ad-Filtered & Pure Play', badge: 'Fastest' },
-    { id: 'vidsrc_to', name: 'Server VidSrc (.to)', sub: 'Global Multi-route', badge: 'HD Pro' },
-    { id: 'vidsrc_me', name: 'Server VidSrc (.me)', sub: 'Ultra Stable Feed', badge: 'Popular' },
-    { id: 'autoembed_co', name: 'Server AutoEmbed', sub: 'No Ads Stream', badge: 'Clean' },
+    { id: 'vidlink', name: 'Server VidLink', sub: 'Ad-Filtered & Pure Play', badge: 'Active' },
+    { id: 'vidsrc_cc', name: 'Server VidSrc (.cc)', sub: 'Ultra Stable Feed', badge: 'HD Pro' },
+    { id: 'vidsrc_pro', name: 'Server VidSrc (Pro)', sub: 'High Speed Connection', badge: 'Stable' },
+    { id: 'vidsrc_to', name: 'Server VidSrc (.to)', sub: 'Global Multi-route', badge: 'Active' },
     { id: 'embed_su', name: 'Server Embed.su', sub: 'Secondary Backup Link', badge: 'Backup' },
-    { id: 'vidsrc_xyz', name: 'Server VidSrc.xyz', sub: 'Regional Streams Selector', badge: 'Mirror' },
+    { id: 'autoembed_co', name: 'Server AutoEmbed', sub: 'No Ads Stream', badge: 'Clean' },
+    { id: 'vidsrc_me', name: 'Server VidSrc (.me)', sub: 'Robust Redundant Feed', badge: 'Popular' },
     { id: 'multiembed', name: 'Server MultiEmbed', sub: 'Fallback Core Hub', badge: 'Alt' },
+    { id: 'vidsrc_xyz', name: 'Server VidSrc.xyz', sub: 'Regional Streams Selector', badge: 'Mirror' },
     { id: 'trailer', name: 'Official Trailer', sub: 'Watch Promos on YT', badge: 'Teaser' }
   ];
 
@@ -271,44 +290,118 @@ export default function WatchView({
       return `https://www.youtube.com/embed/${youtubeKey}?autoplay=1&start=${initialPlayedSeconds}&modestbranding=1&rel=0&fs=1&enablejsapi=1`;
     }
 
+    const isDub = subDubMode === 'dub';
+    const origLang = details?.original_language || 'ja'; // Default to Japanese (ja) if unclear, especially useful for anime
+    const isJa = origLang === 'ja';
+
+    // Helper for VidLink to map ISO codes to language names for the audio track selection
+    const getVidLinkLang = () => {
+      if (isDub) return 'audio=english';
+      switch (origLang) {
+        case 'ja': return 'audio=japanese';
+        case 'fr': return 'audio=french';
+        case 'es': return 'audio=spanish';
+        case 'ko': return 'audio=korean';
+        case 'it': return 'audio=italian';
+        case 'de': return 'audio=german';
+        case 'zh':
+        case 'cn': return 'audio=chinese';
+        default: return 'audio=original';
+      }
+    };
+
+    // Helper for other servers (vidsrc family) to construct consistent audio and dub/sub query parameters
+    const getQueryParam = (prefix: '?' | '&') => {
+      if (isDub) {
+        return `${prefix}dub=1&audio=en&audio_lang=en&locale=en`;
+      } else {
+        // Subbed format: request the original language audio (e.g., ja, fr, es) with English subtitles
+        return `${prefix}sub=1&audio=${origLang}&audio_lang=${origLang}&locale=${origLang}&sub_lang=en&sub_title=english`;
+      }
+    };
+
     if (mediaType === 'movie') {
       switch (activeServer) {
-        case 'vidlink':
-          return `https://vidlink.pro/embed/movie/${mediaId}?primaryColor=f82020&autoplay=true`;
-        case 'vidsrc_to':
-          return `https://vidsrc.to/embed/movie/${mediaId}`;
-        case 'vidsrc_me':
-          return `https://vidsrc.me/embed/movie?tmdb=${mediaId}`;
-        case 'autoembed_co':
-          return `https://autoembed.co/movie/tmdb/${mediaId}`;
-        case 'embed_su':
-          return `https://embed.su/embed/movie/${mediaId}`;
-        case 'vidsrc_xyz':
-          return `https://vidsrc.xyz/embed/movie?tmdb=${mediaId}`;
-        case 'multiembed':
-          return `https://multiembed.mov/?video_id=${mediaId}&tmdb=1`;
+        case 'vidlink': {
+          const langParam = getVidLinkLang();
+          return `https://vidlink.pro/embed/movie/${mediaId}?primaryColor=f82020&autoplay=true&${langParam}&sub_lang=en`;
+        }
+        case 'vidsrc_cc': {
+          const modeParam = getQueryParam('?');
+          return `https://vidsrc.cc/v2/embed/movie/${mediaId}${modeParam}`;
+        }
+        case 'vidsrc_pro': {
+          const modeParam = getQueryParam('?');
+          return `https://vidsrc.pro/embed/movie/${mediaId}${modeParam}`;
+        }
+        case 'vidsrc_to': {
+          const modeParam = getQueryParam('?');
+          return `https://vidsrc.to/embed/movie/${mediaId}${modeParam}`;
+        }
+        case 'vidsrc_me': {
+          const modeParam = getQueryParam('&');
+          return `https://vidsrc.me/embed/movie?tmdb=${mediaId}${modeParam}`;
+        }
+        case 'autoembed_co': {
+          const modeParam = getQueryParam('?');
+          return `https://autoembed.co/movie/tmdb/${mediaId}${modeParam}`;
+        }
+        case 'embed_su': {
+          const modeParam = getQueryParam('?');
+          return `https://embed.su/embed/movie/${mediaId}${modeParam}`;
+        }
+        case 'vidsrc_xyz': {
+          const modeParam = getQueryParam('&');
+          return `https://vidsrc.xyz/embed/movie?tmdb=${mediaId}${modeParam}`;
+        }
+        case 'multiembed': {
+          const modeParam = getQueryParam('&');
+          return `https://multiembed.mov/?video_id=${mediaId}&tmdb=1${modeParam}`;
+        }
         default:
-          return `https://vidlink.pro/embed/movie/${mediaId}`;
+          return `https://vidlink.pro/embed/movie/${mediaId}?primaryColor=f82020&autoplay=true&audio=original&sub_lang=en`;
       }
     } else {
       // TV / Anime Series
       switch (activeServer) {
-        case 'vidlink':
-          return `https://vidlink.pro/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}?primaryColor=f82020&autoplay=true`;
-        case 'vidsrc_to':
-          return `https://vidsrc.to/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}`;
-        case 'vidsrc_me':
-          return `https://vidsrc.me/embed/tv?tmdb=${mediaId}&season=${activeSeason}&episode=${activeEpisode}`;
-        case 'autoembed_co':
-          return `https://autoembed.co/tv/tmdb/${mediaId}-${activeSeason}-${activeEpisode}`;
-        case 'embed_su':
-          return `https://embed.su/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}`;
-        case 'vidsrc_xyz':
-          return `https://vidsrc.xyz/embed/tv?tmdb=${mediaId}&season=${activeSeason}&episode=${activeEpisode}`;
-        case 'multiembed':
-          return `https://multiembed.mov/?video_id=${mediaId}&tmdb=1&s=${activeSeason}&e=${activeEpisode}`;
+        case 'vidlink': {
+          const langParam = getVidLinkLang();
+          return `https://vidlink.pro/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}?primaryColor=f82020&autoplay=true&${langParam}&sub_lang=en`;
+        }
+        case 'vidsrc_cc': {
+          const modeParam = getQueryParam('?');
+          return `https://vidsrc.cc/v2/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}${modeParam}`;
+        }
+        case 'vidsrc_pro': {
+          const modeParam = getQueryParam('?');
+          return `https://vidsrc.pro/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}${modeParam}`;
+        }
+        case 'vidsrc_to': {
+          const modeParam = getQueryParam('?');
+          return `https://vidsrc.to/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}${modeParam}`;
+        }
+        case 'vidsrc_me': {
+          const modeParam = getQueryParam('&');
+          return `https://vidsrc.me/embed/tv?tmdb=${mediaId}&season=${activeSeason}&episode=${activeEpisode}${modeParam}`;
+        }
+        case 'autoembed_co': {
+          const modeParam = getQueryParam('?');
+          return `https://autoembed.co/tv/tmdb/${mediaId}-${activeSeason}-${activeEpisode}${modeParam}`;
+        }
+        case 'embed_su': {
+          const modeParam = getQueryParam('?');
+          return `https://embed.su/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}${modeParam}`;
+        }
+        case 'vidsrc_xyz': {
+          const modeParam = getQueryParam('&');
+          return `https://vidsrc.xyz/embed/tv?tmdb=${mediaId}&season=${activeSeason}&episode=${activeEpisode}${modeParam}`;
+        }
+        case 'multiembed': {
+          const modeParam = getQueryParam('&');
+          return `https://multiembed.mov/?video_id=${mediaId}&tmdb=1&s=${activeSeason}&e=${activeEpisode}${modeParam}`;
+        }
         default:
-          return `https://vidlink.pro/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}`;
+          return `https://vidlink.pro/embed/tv/${mediaId}/${activeSeason}/${activeEpisode}?primaryColor=f82020&autoplay=true&audio=original&sub_lang=en`;
       }
     }
   };
@@ -411,6 +504,51 @@ export default function WatchView({
             <span>Launch stream in custom standalone tab</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
+        </div>
+
+        {/* Sub / Dub Preference Selector */}
+        <div className="bg-[#0a0a0a] border border-[#1a1a1a] p-4 rounded-xl mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#f82020]/10 rounded-lg text-[#f82020]">
+              <Languages className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2 font-display">
+                Audio & Subtitle Track Mode
+                <span className="text-[9px] bg-red-500/20 text-red-500 border border-red-500/20 px-1.5 py-0.5 rounded-md uppercase font-bold tracking-wider">Default option</span>
+              </h3>
+              <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">
+                {subDubMode === 'sub' 
+                  ? "Original vocal track with English subtitles is preferred." 
+                  : "Translated English dub track is preferred (where supported)."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-[#050505] p-1 rounded-xl border border-[#1e1e1e] w-full md:w-auto">
+            <button
+              onClick={() => handleSubDubChange('sub')}
+              className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                subDubMode === 'sub'
+                  ? 'bg-[#f82020] text-white shadow-lg shadow-red-500/10'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Captions className="w-4 h-4" />
+              <span>SUBBED (Original CC)</span>
+            </button>
+            <button
+              onClick={() => handleSubDubChange('dub')}
+              className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                subDubMode === 'dub'
+                  ? 'bg-[#f82020] text-white shadow-lg shadow-red-500/10'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Mic className="w-4 h-4" />
+              <span>DUBBED (English Audio)</span>
+            </button>
+          </div>
         </div>
 
         {/* AI Shield protection badge & sources list */}
